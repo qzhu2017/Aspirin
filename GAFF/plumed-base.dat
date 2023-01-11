@@ -4,8 +4,14 @@ ENVIRONMENTSIMILARITY ...
  SPECIES=1-1024:21
  SIGMA=replace
  CRYSTAL_STRUCTURE=CUSTOM
- REFERENCE_1=../env1.pdb 
- REFERENCE_2=../env2.pdb
+ REFERENCE_1=../env_01.pdb 
+ REFERENCE_2=../env_02.pdb
+ REFERENCE_3=../env_03.pdb 
+ REFERENCE_4=../env_04.pdb 
+ REFERENCE_5=../env_11.pdb 
+ REFERENCE_6=../env_12.pdb 
+ REFERENCE_7=../env_13.pdb 
+ REFERENCE_8=../env_14.pdb 
  LABEL=s
  MEAN
 ... ENVIRONMENTSIMILARITY
