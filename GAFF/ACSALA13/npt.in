@@ -4,7 +4,8 @@ include lmp.in
 variable temperature equal      300.000
 variable pressure equal        1.000
 variable dt equal        1.000
- 
+variable thermo_out_freq equal 500 
+variable dump_out_freq equal 500
 variable tdamp equal 100*${dt}
 variable pdamp equal 1000*${dt}
 variable pxx equal pxx
@@ -25,16 +26,20 @@ velocity       all create ${temperature} 1938072 mom yes rot no
 fix            1 all npt temp ${temperature} ${temperature} ${tdamp} iso ${pressure} ${pressure} ${pdamp}
 fix            2 all momentum 1 linear 1 1 1 rescale
 
-thermo 1000
-thermo_style    custom step temp ke pe etotal press lx ly lz vol fmax
+thermo ${thermo_out_freq}
+thermo_style    custom step temp pe press lx ly lz vol
 thermo_modify lost ignore flush yes
 
 neighbor 1.0 bin
 neigh_modify every 1 delay 5 check yes
 
 
-dump 1 all custom 100 dump.lammpstrj id type x y z 
-dump_modify 1 sort id
+#dump 1 all custom 100 dump.lammpstrj id type x y z 
+#dump_modify 1 sort id
+dump            myDump all atom ${dump_out_freq} dump.na
+dump            myDcdDump all dcd ${dump_out_freq} out.dcd
+dump_modify myDump append yes
+dump_modify     myDcdDump append yes
 
 timestep 	${dt}
 run             50000
