@@ -33,7 +33,6 @@ def read_xyz(filename, cellname=None):
         while len(lines) > 0:
             line = lines.popleft()
             if 'Lattice vectors (A)' in line:
-                print(line)
                 celldatarows = [lines.popleft() for _ in range(3)]
                 cells.append(np.loadtxt(celldatarows))
 
@@ -42,7 +41,7 @@ def read_xyz(filename, cellname=None):
             for mat, struc in zip(cells, images):
                 struc.set_pbc([1, 1, 1])
                 struc.set_cell(mat)
-                print(struc)
+                #print(struc)
         else:
             print(len(cells), len(images))
             raise RuntimeError('Number of structure is inconsistent')
@@ -137,20 +136,49 @@ def get_mol_centers(struc, N_mols, N_atoms):
         dist = scaled_pos - scaled_pos[0]
         shift = np.round(dist)
         scaled_pos -= shift
-        centers[i, :] = np.mean(scaled_pos, axis=0)
+        centers[i, :] = np.mean(scaled_pos[:13], axis=0)
+        #centers[i, :] = scaled_pos[0]
     return centers
 
-def compute_q4_q6(strucs, N_atoms, ls=[4, 6], N_cut=10):
+def get_dimer_centers(struc, N_mols, N_atoms, id=10):
+    all_scaled_positions = np.zeros([N_atoms*N_mols, 3])
+    centers = []
+    for i in range(0, N_mols, 2):
+        j = 1
+        id1, id2 = i*N_atoms+id, (i+j)*N_atoms+id
+        pos1 = struc.get_scaled_positions()[id1]
+        pos2 = struc.get_scaled_positions()[id2]
+        dist = pos2 - pos1
+        shift = np.round(dist)
+        pos2 -= shift
+        print('dimer', i, i+j, pos1, pos2, np.linalg.norm((pos2-pos1).dot(struc.cell[:])))
+        centers.append((pos1 + pos2)/2)
+        #centers[i, :] = scaled_pos[0]
+    return np.array(centers)
+
+def compute_qs(strucs, N_atoms, ls=[4, 6], N_cut=10, r=5.0, ref='mol'):
 
     N_mols = int(len(strucs[0])/N_atoms)
-    neighbors = NeighborList([5.0]*N_mols, self_interaction=False, bothways=True, skin=0.0)
-    qs = np.zeros([len(strucs), N_mols, len(ls)])
+    if ref == 'mol':
+        qs = np.zeros([len(strucs), N_mols, len(ls)])
+    else:
+        qs = np.zeros([len(strucs), int(N_mols/2), len(ls)])
+        #N_cut = 20 #check all
+
+    neighbors = NeighborList([r]*qs.shape[1], self_interaction=False, bothways=True, skin=0.0)
 
     for i, struc in enumerate(strucs):
-        pos = get_mol_centers(struc, N_mols, N_atoms)
-        atom1 = Atoms([6]*N_mols, scaled_positions=pos, cell=struc.cell[:], pbc=[1,1,1])
+        if ref == 'mol':
+            pos = get_mol_centers(struc, N_mols, N_atoms)
+        else:
+            pos = get_dimer_centers(struc, N_mols, N_atoms)
+        cell = struc.cell[:]
+        #cell[0, 0] /= 1.5
+        atom1 = Atoms([6]*len(pos), scaled_positions=pos, cell=cell, pbc=[1,1,1])
+        #atom1.write('0.cif', format='cif')
         neighbors.update(atom1)
-        for j in range(N_mols):
+
+        for j in range(len(pos)):
             indices, offsets = neighbors.get_neighbors(j)
             Ri = atom1.positions[j]
             tmp = np.zeros([len(indices), 3])
@@ -160,16 +188,19 @@ def compute_q4_q6(strucs, N_atoms, ls=[4, 6], N_cut=10):
                 count += 1
             tmp -= Ri
             ds = np.linalg.norm(tmp, axis=1)
-            #print(np.sort(ds))
-            tol = np.sort(ds)[N_cut-1]
-            tmp = tmp[ds<tol+1e-5]
+
+            print(i, j, len(ds), np.sort(ds))
+
+            if N_cut < len(ds):
+                tol = np.sort(ds)[N_cut-1]
+                tmp = tmp[ds<tol+1e-5]
             for l0, l in enumerate(ls):
                 factor = (4 * np.pi) / (2*l + 1)
                 qlms = _qlm(tmp, l)
                 dot = float(np.sum(qlms*np.conjugate(qlms)))
                 val = np.sqrt(factor * dot)
                 qs[i, j, l0] = val
-                print(i, j, len(tmp), val)
+                #print(i, j, len(tmp), val)
     return qs
 
 
@@ -186,8 +217,8 @@ def plot_q4_q6(prefixes, labels, title, ls=[4, 6]):
                            wspace=0, hspace=0)
     
     drange = (0, 0.5)
-    q4_range = [0.25, 0.52]
-    q6_range = [0.25, 0.52]
+    q4_range = [0.12, 0.52]
+    q6_range = [0.12, 0.52]
 
     for l0, l in enumerate(ls):
         if l0 == 0:
@@ -219,38 +250,37 @@ def plot_q4_q6(prefixes, labels, title, ls=[4, 6]):
         ax.scatter(x, y, label=la, alpha=0.5, s=0.1)
     
     legend = ax.legend(frameon=False, markerscale=16, fontsize=15)
-    ax.set_xlabel('q4')
-    ax.set_ylabel('q6')
+    ax.set_xlabel('q'+str(ls[0]))
+    ax.set_ylabel('q'+str(ls[1]))
     ax.set_xlim(q4_range)
     ax.set_ylim(q6_range)
     plt.figtext(0.77, 0.68, title.replace('_', '\n'), ha='center', fontsize=16)
     plt.savefig(title+'.png', dpi=300)
 
 ###########################################################
-N_atoms = 21 #number of atoms per molecule
-ls = [4, 6]  #q4 and q6
-N_cut = 10   #number of neighbors
+N_atoms = 21 # number of atoms per molecule
+ls = [4, 6]  # q4 and q6
+N_cut = 10   # number of neighbors
+r_cut = 4.5  # cutoff radius
+ref = 'mol' #'dimer' #comput dimer only
 
-#strucs = read_xyz('ACS/geo_final.xyz', 'ACS/md.out')
-#print(len(strucs))
+#files = ['MLP/asp_I_300K.lammpstrj', 'MLP/asp_II_300K.lammpstrj']
+files = ['GAFF/ACSALA/dump.lammpstrj', 'GAFF/ACSALA13/dump.lammpstrj']
+#files = ['DFTB/ACSALA/', 'DFTB/ACSALA13/']
 
 labels = ['form I', 'form II']
 prefixes = []
-
-# MLP
-files = ['MLP/asp_I_300K.lammpstrj', 'MLP/asp_II_300K.lammpstrj']
-title = 'MLP_NPT-MD_300K_1atm'
-
-# GAFF
-files = ['GAFF/ACSALA/dump.lammpstrj', 'GAFF/ACSALA13/dump.lammpstrj']
-title = 'GAFF_NPT-MD_300K_1atm'
-
 for f in files:
-    strucs = read_lammps_dump_text(f)
-    qs = compute_q4_q6(strucs, N_atoms, N_cut=N_cut, ls=ls)
+    dir0 = f.split('/')[0]
+    if dir0 in ['DFTB']:
+        strucs = read_xyz(f+'geo_final.xyz', f+'md.out')
+    else:
+        strucs = read_lammps_dump_text(f)#[:1]
+    qs = compute_qs(strucs, N_atoms, N_cut=N_cut, ls=ls, r=r_cut, ref=ref)
     pre = f.split('.')[0] + '_Ncut_' + str(N_cut)
     for l0, l in enumerate(ls):
         np.savetxt(pre+'-q'+str(l)+'.txt', qs[:,:,l0])
     prefixes.append(pre)
 
-plot_q4_q6(prefixes, labels, title)
+title = dir0+'_NPT-MD_300K_1atm'
+plot_q4_q6(prefixes, labels, title, ls)
