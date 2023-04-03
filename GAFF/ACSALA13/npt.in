@@ -1,5 +1,5 @@
 include lmp.in
-#replicate 2 2 2
+replicate 2 2 2
 
 variable temperature equal      300.000
 variable pressure equal        1.000
@@ -34,11 +34,12 @@ neighbor 1.0 bin
 neigh_modify every 1 delay 5 check yes
 
 
-#dump 1 all custom 100 dump.lammpstrj id type x y z 
-#dump_modify 1 sort id
-dump            myDump all atom ${dump_out_freq} dump.na
+#dump            myDump all atom ${dump_out_freq} dump.na
+#dump_modify myDump append yes
+
+dump 1 all custom 100 dump.lammpstrj id type x y z 
+dump_modify 1 sort id
 dump            myDcdDump all dcd ${dump_out_freq} out.dcd
-dump_modify myDump append yes
 dump_modify     myDcdDump append yes
 
 timestep 	${dt}
