@@ -4,8 +4,8 @@ include lmp.in
 variable temperature equal      300.000
 variable pressure equal        1.000
 variable dt equal        1.000
-variable thermo_out_freq equal 500 
-variable dump_out_freq equal 500
+variable thermo_out_freq equal 1000 
+variable dump_out_freq equal 1000
 variable tdamp equal 100*${dt}
 variable pdamp equal 1000*${dt}
 variable pxx equal pxx
@@ -42,4 +42,4 @@ dump_modify myDump append yes
 dump_modify     myDcdDump append yes
 
 timestep 	${dt}
-run             50000
+run             500000
