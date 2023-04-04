@@ -12,3 +12,9 @@ $ tail -f COLVAR
 - download the lammps dumpfile to ovito check if the simulation is reasonable
 - Play with the parameters `BARRIER` in `plumed.dat`
 
+
+# Download
+```
+cp dump.lammpstrj ~/
+scp qzhu@zinc.physics.unlv.edu:dump.lammpstrj ./
+```
