@@ -21,12 +21,6 @@ thermo_modify   lost warn norm yes
 min_style cg
 minimize 1.0e-25 1.0e-25 100000 1000000
 
-# NPT equilibration
-
-#velocity       all create ${temperature} 1938072 mom yes rot no
-#fix            1 all npt temp ${temperature} ${temperature} ${tdamp} iso ${pressure} ${pressure} ${pdamp}
-#fix            2 all momentum 1 linear 1 1 1 rescale
-
 thermo ${thermo_out_freq}
 thermo_style    custom step temp pe press lx ly lz vol
 thermo_modify lost ignore flush yes
@@ -35,9 +29,18 @@ neighbor 1.0 bin
 neigh_modify every 1 delay 5 check yes
 timestep 	${dt}
 
+# NPT equilibration
 
-#dump            myDump all atom ${dump_out_freq} dump.na
-#dump_modify myDump append yes
+velocity       all create ${temperature} 1938072 mom yes rot no
+fix            1 all npt temp ${temperature} ${temperature} ${tdamp} iso ${pressure} ${pressure} ${pdamp}
+fix            2 all momentum 1 linear 1 1 1 rescale
+
+run             500000
+unfix       1
+unfix       2
+
+
+# META Simulation with Plumed
 
 dump 1 all custom 100 dump.lammpstrj id type x y z 
 dump_modify 1 sort id
@@ -47,7 +50,7 @@ dump_modify     myDcdDump append yes
 fix             1 all plumed plumedfile plumed.dat outfile plumed.out
 fix             2 all nph iso ${pressure} ${pressure} ${pdamp}
 fix             3 all temp/csvr ${temperature} ${temperature} ${tdamp} ${seed}
-velocity        all create ${temperature} ${seed} dist gaussian
+#velocity        all create ${temperature} ${seed} dist gaussian
 
 run             500000
 unfix       1
