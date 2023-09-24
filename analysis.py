@@ -163,9 +163,10 @@ def compute_shift(strucs, N_atoms, ids=[0, 1, 2, 3], ref='mol'):
     [a, b, c, d] = ids
     for i, struc in enumerate(strucs):
         pos = get_dimer_centers(struc, N_mols, N_atoms)
+        pos -= np.round(pos)
         ds = (pos[a]+pos[b]-pos[c]-pos[d])/2
-        if ds[2]>0.2: ds[2] -= 0.5
-        if ds[2]<-0.2: ds[2] += 0.5
+        #if ds[2]>0.2: ds[2] -= 0.5
+        #if ds[2]<-0.2: ds[2] += 0.5
         #ds -= np.round(ds)
         dist = np.dot(ds, struc.cell.array)
         dists.append(dist)
