@@ -151,10 +151,28 @@ def get_dimer_centers(struc, N_mols, N_atoms, id=10):
         dist = pos2 - pos1
         shift = np.round(dist)
         pos2 -= shift
-        print('dimer', i, i+j, pos1, pos2, np.linalg.norm((pos2-pos1).dot(struc.cell[:])))
+        #print('dimer', i, i+j, pos1, pos2, np.linalg.norm((pos2-pos1).dot(struc.cell[:])))
         centers.append((pos1 + pos2)/2)
         #centers[i, :] = scaled_pos[0]
     return np.array(centers)
+
+def compute_shift(strucs, N_atoms, ids=[0, 1, 2, 3], ref='mol'):
+
+    dists = []
+    N_mols = int(len(strucs[0])/N_atoms)
+    [a, b, c, d] = ids
+    for i, struc in enumerate(strucs):
+        pos = get_dimer_centers(struc, N_mols, N_atoms)
+        ds = (pos[a]+pos[b]-pos[c]-pos[d])/2
+        if ds[2]>0.2: ds[2] -= 0.5
+        if ds[2]<-0.2: ds[2] += 0.5
+        #ds -= np.round(ds)
+        dist = np.dot(ds, struc.cell.array)
+        dists.append(dist)
+        #print(pos); import sys; sys.exit()
+        print(i, ds, dist)
+    return np.array(dists)
+
 
 def compute_qs(strucs, N_atoms, ls=[4, 6], N_cut=10, r=5.0, ref='mol'):
 
@@ -257,6 +275,37 @@ def plot_q4_q6(prefixes, labels, title, ls=[4, 6]):
     plt.figtext(0.77, 0.68, title.replace('_', '\n'), ha='center', fontsize=16)
     plt.savefig(title+'.png', dpi=300)
 
+def plot_yz(title):
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import matplotlib.gridspec as gridspec
+    sns.set(font_scale=1.0)
+    sns.set_theme(style='white')
+    
+    fig = plt.figure(figsize=(6.4, 5.0))
+    gs = gridspec.GridSpec(nrows=2, ncols=2, 
+                           width_ratios=[1, 0.5], height_ratios=[0.5, 1], 
+                           wspace=0, hspace=0)
+    
+   
+    d = np.loadtxt(title+'.txt')
+    ax = fig.add_subplot(gs[1, 0])
+    ax.scatter(d[:,1], d[:,2], s=0.2)
+    
+    ax = fig.add_subplot(gs[0, 0])
+    ori = 'vertical'
+    ax.hist(d[:,1], bins=50, density=True, label='y', orientation=ori)
+    ax.set_xticks([])
+    ax.legend()
+
+    ax = fig.add_subplot(gs[1, 1])
+    ori = 'horizontal'
+    ax.hist(d[:,2], bins=50, density=True, label='z', orientation=ori)
+    ax.set_yticks([])
+    ax.legend()
+    plt.savefig(title+'.png')
+
+
 ###########################################################
 N_atoms = 21 # number of atoms per molecule
 ls = [4, 6]  # q4 and q6
@@ -268,19 +317,26 @@ ref = 'mol' #'dimer' #comput dimer only
 files = ['GAFF/ACSALA/dump.lammpstrj', 'GAFF/ACSALA13/dump.lammpstrj']
 #files = ['DFTB/ACSALA/', 'DFTB/ACSALA13/']
 
-labels = ['form I', 'form II']
+labels = ['I', 'II']
 prefixes = []
-for f in files:
+for i, f in enumerate(files):
     dir0 = f.split('/')[0]
     if dir0 in ['DFTB']:
         strucs = read_xyz(f+'geo_final.xyz', f+'md.out')
     else:
         strucs = read_lammps_dump_text(f)#[:1]
-    qs = compute_qs(strucs, N_atoms, N_cut=N_cut, ls=ls, r=r_cut, ref=ref)
-    pre = f.split('.')[0] + '_Ncut_' + str(N_cut)
-    for l0, l in enumerate(ls):
-        np.savetxt(pre+'-q'+str(l)+'.txt', qs[:,:,l0])
-    prefixes.append(pre)
+    if i == 0: 
+        ids = [0, 3, 1, 2]
+    else:
+        ids = [0, 1, 2, 3]
+    dists = compute_shift(strucs, N_atoms, ids)
+    np.savetxt(labels[i]+'.txt', dists)
+    plot_yz(labels[i])
+    #qs = compute_qs(strucs, N_atoms, N_cut=N_cut, ls=ls, r=r_cut, ref=ref)
+    #pre = f.split('.')[0] + '_Ncut_' + str(N_cut)
+    #for l0, l in enumerate(ls):
+    #    np.savetxt(pre+'-q'+str(l)+'.txt', qs[:,:,l0])
+    #prefixes.append(pre)
 
-title = dir0+'_NPT-MD_300K_1atm'
-plot_q4_q6(prefixes, labels, title, ls)
+#title = dir0+'_NPT-MD_300K_1atm'
+#plot_q4_q6(prefixes, labels, title, ls)
