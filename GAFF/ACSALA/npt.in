@@ -1,5 +1,5 @@
 include lmp.in
-replicate 2 2 2
+replicate 2 2 2 #10 10 10
 
 variable temperature equal      300.000
 variable pressure equal        1.000
@@ -23,24 +23,23 @@ minimize 1.0e-25 1.0e-25 100000 1000000
 # NPT equilibration
 
 velocity       all create ${temperature} 1938072 mom yes rot no
-fix            1 all npt temp ${temperature} ${temperature} ${tdamp} iso ${pressure} ${pressure} ${pdamp}
+fix            1 all npt temp ${temperature} ${temperature} ${tdamp} tri ${pressure} ${pressure} ${pdamp}
 fix            2 all momentum 1 linear 1 1 1 rescale
 
 thermo ${thermo_out_freq}
-thermo_style    custom step temp pe press lx ly lz vol
+thermo_style    custom step temp pe press lx ly lz xy xz yz vol
 thermo_modify lost ignore flush yes
 
 neighbor 1.0 bin
 neigh_modify every 1 delay 5 check yes
 
-
-#dump            myDump all atom ${dump_out_freq} dump.na
-#dump_modify myDump append yes
-
-dump 1 all custom 100 dump.lammpstrj id type x y z 
+dump 1 all custom 500 dump.lammpstrj id type x y z 
 dump_modify 1 sort id
-dump            myDcdDump all dcd ${dump_out_freq} out.dcd
-dump_modify     myDcdDump append yes
+
+compute         cmol all chunk/atom molecule # Define the chunk as a molecule
+compute         com all com/chunk cmol       # Calculate the center-of-mass per molecule
+compute         vcm all vcm/chunk cmol       # Calculate the velocity of center-of-mass per molecule
+fix             3 all ave/time 2 100 1000 c_com[*] c_vcm[*] file center.dat mode vector
 
 timestep 	${dt}
-run             50000
+run             3000000
