@@ -1,9 +1,53 @@
 from collections import deque
 from ase.neighborlist import NeighborList
 from ase.io.lammpsrun import get_max_index, construct_cell, lammps_data_to_ase_atoms
-from pyxtal.descriptor import _qlm
+#from pyxtal.descriptor import _qlm
 import numpy as np
 from ase.atoms import Atoms
+
+def _qlm(dists, l=4):
+    """
+    Calculates the vector associated with an atomic site and
+    one of its neighbors
+
+    Args:
+        distss: a list of distance vectors
+        l:  free integer quantum number
+    Returns:
+        q: numpy array(complex128), the complex vector qlm normalized
+            by the number of nearest neighbors
+    """
+    # initiate variable as a complex number
+    q = np.zeros(2 * l + 1, dtype=np.complex128)
+    neighbors_count = len(dists)
+
+    for i, m in enumerate(range(-l, l + 1)):
+        for _j, r_vec in enumerate(dists):
+            # find the position vector of the site/neighbor pair
+            r_mag = np.linalg.norm(r_vec)
+            theta = np.arccos(r_vec[2] / r_mag)
+            if abs((r_vec[2] / r_mag) - 1.0) < 10.0 ** (-8.0):
+                theta = 0.0
+            elif abs((r_vec[2] / r_mag) + 1.0) < 10.0 ** (-8.0):
+                theta = np.pi
+
+            # phi
+            if r_vec[0] < 0.0:
+                phi = np.pi + np.arctan(r_vec[1] / r_vec[0])
+            elif r_vec[0] > 0.0 and r_vec[1] < 0.0:
+                phi = 2 * np.pi + np.arctan(r_vec[1] / r_vec[0])
+            elif r_vec[0] > 0.0 and r_vec[1] >= 0.0:
+                phi = np.arctan(r_vec[1] / r_vec[0])
+            elif r_vec[0] == 0.0 and r_vec[1] > 0.0:
+                phi = 0.5 * np.pi
+            elif r_vec[0] == 0.0 and r_vec[1] < 0.0:
+                phi = 1.5 * np.pi
+            else:
+                phi = 0.0
+
+            q[i] += sph_harm(m, l, phi, theta)
+    # normalize by number of neighbors
+    return q / neighbors_count
 
 def read_xyz(filename, cellname=None):
     fileobj = open(filename)
