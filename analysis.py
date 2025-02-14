@@ -174,7 +174,7 @@ def compute_shift(strucs, N_atoms, ids=[(0, 2), (1, 3)], ref='mol'):
         dists.append(np.array(_dists).mean(axis=0))
         #dists.append(np.array(_dists)) #.mean(axis=0))
         #ds = (pos[a]+pos[b]-pos[c]-pos[d])/2
-        #if ds[1] > 0.3: 
+        #if ds[1] > 0.3:
         #    ds[1] -= 0.5
         #elif ds[1] < -0.25:
         #    ds[1] += 0.5
@@ -240,12 +240,12 @@ def plot_q4_q6(prefixes, labels, title, ls=[4, 6]):
     import matplotlib.gridspec as gridspec
     sns.set(font_scale=1.0)
     sns.set_theme(style='white')
-    
+
     fig = plt.figure(figsize=(6.4, 5.0))
-    gs = gridspec.GridSpec(nrows=len(ls), ncols=2, 
-                           width_ratios=[1, 0.5], height_ratios=[0.5, 1], 
+    gs = gridspec.GridSpec(nrows=len(ls), ncols=2,
+                           width_ratios=[1, 0.5], height_ratios=[0.5, 1],
                            wspace=0, hspace=0)
-    
+
     drange = (0, 0.5)
     q4_range = [0.12, 0.52]
     q6_range = [0.12, 0.52]
@@ -261,12 +261,12 @@ def plot_q4_q6(prefixes, labels, title, ls=[4, 6]):
             ori = 'horizontal'
             ax.set_ylim(q6_range)
             ax.set_yticks([])
-    
+
         for f in prefixes:
             tag = f+'-q'+str(l)+'.txt'
             d = np.loadtxt(tag).flatten()
             ax.hist(d, bins=200, range=drange, density=True, label=tag[:-4], alpha=0.5, orientation=ori)
-    
+
     ax = fig.add_subplot(gs[1, 0])
     for f, la in zip(prefixes, labels):
         x = None
@@ -278,7 +278,7 @@ def plot_q4_q6(prefixes, labels, title, ls=[4, 6]):
             else:
                 y = np.loadtxt(tag)
         ax.scatter(x, y, label=la, alpha=0.5, s=0.1)
-    
+
     legend = ax.legend(frameon=False, markerscale=16, fontsize=15)
     ax.set_xlabel('q'+str(ls[0]))
     ax.set_ylabel('q'+str(ls[1]))
@@ -293,22 +293,22 @@ def plot_yz(titles, suffix):
     import matplotlib.gridspec as gridspec
     sns.set(font_scale=1.0)
     sns.set_theme(style='white')
-    
+
     fig = plt.figure(figsize=(5.6, 5.6))
-    gs = gridspec.GridSpec(nrows=2, ncols=2, 
-                           width_ratios=[1, 0.5], height_ratios=[0.5, 1], 
+    gs = gridspec.GridSpec(nrows=2, ncols=2,
+                           width_ratios=[1, 0.5], height_ratios=[0.5, 1],
                            wspace=0, hspace=0)
-    
+
     ax1 = fig.add_subplot(gs[1, 0])
     ax2 = fig.add_subplot(gs[0, 0])
     ax3 = fig.add_subplot(gs[1, 1])
     ori2 = 'vertical'
-    drange = (-1.5, 1.5)   
+    drange = (-1.5, 1.5)
     nbins = 75
     ori3 = 'horizontal'
 
     for i, title in enumerate(titles):
-        if i == 0: 
+        if i == 0:
             col = 'red'
         else:
             col = 'blue'
@@ -316,7 +316,7 @@ def plot_yz(titles, suffix):
         ax1.scatter(d[:,2], d[:,1], s=1.0, c=col, alpha=0.5, label=title)
         ax2.hist(d[:,2], bins=nbins, range=drange, density=True, color=col, label=title+'-c', orientation=ori2, alpha=0.5)
         ax3.hist(d[:,1], bins=nbins, range=drange, density=True, color=col, label=title+'-b', orientation=ori3, alpha=0.5)
-    
+
     ax1.set_xlim(drange)
     ax1.set_ylim(drange)
     ax2.set_ylim([0.001, 2])
@@ -336,12 +336,12 @@ def plot_yz(titles, suffix):
 
 ###########################################################
 N_atoms = 21 # number of atoms per molecule
-cut = 600
+cut = 100 #600
 #files = ['MLP/asp_I_300K.lammpstrj', 'MLP/asp_II_300K.lammpstrj']
 #files = ['DFTB/ACSALA/', 'DFTB/ACSALA13/']
 
 ids = [(0, 2), (1, 3)]#, (4, 6), (5, 7), (8, 10), (9, 11), (12, 14), (13, 15)]
-for T in [300, 350, 380]:
+for T in [300]: #[300, 350, 380]:
     labels = []
     for n in ['I', 'II']:
         label = n+'-'+str(T)+'K' #['I-380K', 'II-380K']
@@ -350,7 +350,8 @@ for T in [300, 350, 380]:
         else:
             form = 'ACSALA13'
             #ids = [(0, 2), (1, 3)]
-        f = 'GAFF/'+form+'-'+str(T)+'K/dump.lammpstrj'
+        #f = 'GAFF/'+form+'-'+str(T)+'K/dump.lammpstrj'
+        f = 'GAFF/'+form+'/dump.lammpstrj'
         strucs = read_lammps_dump_text(f)#[:1]
         dists = compute_shift(strucs[cut:], N_atoms, ids)
         #if i == 0: dists[:,1] += 0.1
